@@ -1,8 +1,12 @@
+from fastapi import Request
 from fastapi_amis_admin.amis.components import PageSchema, TableColumn
+from sqlalchemy import select as sa_select
+from sqlalchemy.sql import Select
 
 from app.admin.mixins import LabeledModelAdmin
 from app.admin.site import admin_site
 from app.models.inventory import ExpiryTracking, InventoryItem
+from app.models.user import User
 
 
 @admin_site.register_admin
@@ -12,8 +16,8 @@ class InventoryAdmin(LabeledModelAdmin):
 
     # ── Table columns ─────────────────────────────────────────────────────────
     list_display = [
-        TableColumn(name="id",             label="ID"),
-        TableColumn(name="user_id",        label="User ID"),
+        # TableColumn(name="id",             label="ID"),
+        TableColumn(name="user_email",     label="Email"),
         TableColumn(name="name",           label="Item Name"),
         TableColumn(name="category",       label="Category"),
         TableColumn(name="quantity",       label="Quantity"),
@@ -25,7 +29,7 @@ class InventoryAdmin(LabeledModelAdmin):
 
     # ── Form field labels ─────────────────────────────────────────────────────
     verbose_fields = {
-        "id":             "ID",
+        # "id":             "ID",
         "user_id":        "User",
         "name":           "Item Name",
         "category":       "Category",
@@ -45,6 +49,16 @@ class InventoryAdmin(LabeledModelAdmin):
     list_filter   = [InventoryItem.category, InventoryItem.quantity_level, InventoryItem.is_packaged]
     ordering      = [InventoryItem.created_at]
 
+    async def get_select(self, request: Request) -> Select:
+        sel = await super().get_select(request)
+        user_email = (
+            sa_select(User.email)
+            .where(User.id == InventoryItem.user_id)
+            .scalar_subquery()
+            .label("user_email")
+        )
+        return sel.add_columns(user_email)
+
 
 @admin_site.register_admin
 class ExpiryAdmin(LabeledModelAdmin):
@@ -54,7 +68,7 @@ class ExpiryAdmin(LabeledModelAdmin):
     # ── Table columns ─────────────────────────────────────────────────────────
     list_display = [
         TableColumn(name="id",                   label="ID"),
-        TableColumn(name="user_id",              label="User ID"),
+        TableColumn(name="user_email",           label="Email"),
         TableColumn(name="inventory_item_id",    label="Item ID"),
         TableColumn(name="expiry_date",          label="Expiry Date"),
         TableColumn(name="notification_sent",    label="Notified"),
@@ -75,3 +89,13 @@ class ExpiryAdmin(LabeledModelAdmin):
 
     list_filter = [ExpiryTracking.notification_sent]
     ordering    = [ExpiryTracking.expiry_date]
+
+    async def get_select(self, request: Request) -> Select:
+        sel = await super().get_select(request)
+        user_email = (
+            sa_select(User.email)
+            .where(User.id == ExpiryTracking.user_id)
+            .scalar_subquery()
+            .label("user_email")
+        )
+        return sel.add_columns(user_email)

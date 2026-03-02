@@ -3,7 +3,9 @@ from pathlib import Path
 
 from fastapi import Request
 from fastapi_amis_admin.admin.settings import Settings as AdminSettings
-from fastapi_amis_admin.admin.site import AdminSite, HomeAdmin
+from fastapi_amis_admin.admin.site import HomeAdmin
+
+from app.admin.auth import AuthAdminSite
 from fastapi_amis_admin.amis.components import App, Page
 from fastapi_amis_admin.utils.translation import i18n
 
@@ -19,7 +21,7 @@ _TEMPLATES = Path(__file__).parent / "templates"
 Page.__default_template_path__ = str(_TEMPLATES / "page.html")
 App.__default_template_path__ = str(_TEMPLATES / "app.html")
 
-admin_site = AdminSite(
+admin_site = AuthAdminSite(
     settings=AdminSettings(
         database_url_async=settings.DATABASE_URL_ASYNC,
         secret_key=settings.ADMIN_SECRET_KEY,

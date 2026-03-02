@@ -12,7 +12,7 @@ class EquipmentAdmin(LabeledModelAdmin):
 
     # ── Table columns ─────────────────────────────────────────────────────────
     list_display = [
-        TableColumn(name="id",        label="ID"),
+        # TableColumn(name="id",        label="ID"),
         TableColumn(name="name",      label="Equipment Name"),
         TableColumn(name="category",  label="Category"),
         TableColumn(name="is_active", label="Active"),
@@ -20,7 +20,7 @@ class EquipmentAdmin(LabeledModelAdmin):
 
     # ── Form field labels ─────────────────────────────────────────────────────
     verbose_fields = {
-        "id":          "ID",
+        # "id":          "ID",
         "name":        "Equipment Name",
         "description": "Description",
         "category":    "Category",
@@ -39,7 +39,7 @@ class CuisineCategoryAdmin(LabeledModelAdmin):
 
     # ── Table columns ─────────────────────────────────────────────────────────
     list_display = [
-        TableColumn(name="id",          label="ID"),
+        # TableColumn(name="id",          label="ID"),
         TableColumn(name="name",        label="Category Name"),
         TableColumn(name="description", label="Description"),
         TableColumn(name="is_active",   label="Active"),
@@ -47,7 +47,7 @@ class CuisineCategoryAdmin(LabeledModelAdmin):
 
     # ── Form field labels ─────────────────────────────────────────────────────
     verbose_fields = {
-        "id":          "ID",
+        # "id":          "ID",
         "name":        "Category Name",
         "description": "Description",
         "is_active":   "Active",

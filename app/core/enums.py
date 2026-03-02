@@ -38,3 +38,8 @@ class ScanStatus(str, enum.Enum):
     pending = "pending"
     success = "success"
     failed = "failed"
+
+class UnitType(str, enum.Enum):
+    WEIGHT = "WEIGHT"
+    VOLUME = "VOLUME"
+    COUNT = "COUNT"

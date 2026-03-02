@@ -23,9 +23,9 @@ async def lifespan(app: FastAPI):
     logger.info("Starting %s v%s [%s]", settings.APP_NAME, settings.APP_VERSION, settings.ENVIRONMENT)
 
     # Seed default categories (idempotent — safe on every restart)
-    from app.db.seeders.category_seeder import run_category_seeder
-    await run_category_seeder()
-    logger.info("Category seeder completed")
+    # Run all seeders (idempotent & ordered)
+    from app.db.seeders.main_seeder import run_all_seeders
+    await run_all_seeders()
 
     # Launch in-process expiry notification loop (every hour)
     from app.tasks.expiry_notifications import schedule_daily

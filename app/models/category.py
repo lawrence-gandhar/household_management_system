@@ -8,9 +8,12 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, TimestampMixin, UUIDMixin
 
+import uuid
+
 if TYPE_CHECKING:
     from app.models.inventory import InventoryItem
     from app.models.recipe import Recipe
+    from app.models.category_units import CategoryUnit
 
 
 # ── Association tables (SQLAlchemy Core — no extra columns needed) ─────────────
@@ -53,19 +56,10 @@ inventory_item_categories = Table(
 # ── ORM Model ──────────────────────────────────────────────────────────────────
 
 class Category(UUIDMixin, TimestampMixin, Base):
-    """Admin-managed category catalog shared across recipes and inventory items."""
+    """Admin-managed hierarchical category catalog."""
 
     __tablename__ = "categories"
 
-    # ── Indexes ───────────────────────────────────────────────────────────────
-    # ix_categories_is_active_name: covers the dominant admin list query
-    #   SELECT … WHERE is_active = TRUE ORDER BY name
-    #   (index-only scan for filter + sort; no heap fetch needed for bool+varchar).
-    #
-    # ix_categories_name_trgm: GIN trigram index that turns admin LIKE '%term%'
-    #   searches on 100k+ rows from sequential scans into sub-millisecond lookups.
-    #   Requires the pg_trgm extension — add to your migration with:
-    #       op.execute("CREATE EXTENSION IF NOT EXISTS pg_trgm")
     __table_args__ = (
         Index("ix_categories_is_active_name", "is_active", "name"),
         Index(
@@ -74,25 +68,67 @@ class Category(UUIDMixin, TimestampMixin, Base):
             postgresql_using="gin",
             postgresql_ops={"name": "gin_trgm_ops"},
         ),
+        Index("ix_categories_parent_id", "parent_id"),
     )
 
+    # ── Core Fields ─────────────────────────────────────────
     name: Mapped[str] = mapped_column(
-        String(100), unique=True, nullable=False, index=True
+        String(100),
+        unique=True,
+        nullable=False,
+        index=True,
     )
-    description: Mapped[str | None] = mapped_column(Text, default=None)
-    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 
-    # Relationships — lazy="noload" prevents accidental O(N) eager fetches
-    # in the admin list view; load explicitly when needed via selectinload().
+    description: Mapped[str | None] = mapped_column(
+        Text,
+        nullable=True,
+    )
+
+    is_active: Mapped[bool] = mapped_column(
+        Boolean,
+        default=True,
+        nullable=False,
+    )
+
+    # ── Self-Referencing Hierarchy ─────────────────────────
+    parent_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("categories.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+
+    parent: Mapped["Category | None"] = relationship(
+        "Category",
+        remote_side="Category.id",
+        back_populates="children",
+        lazy="selectin",
+    )
+
+    children: Mapped[list["Category"]] = relationship(
+        "Category",
+        back_populates="parent",
+        lazy="noload",
+    )
+
+    # ── External Relationships ─────────────────────────────
     recipes: Mapped[list["Recipe"]] = relationship(
         "Recipe",
-        secondary=recipe_categories,
+        secondary="recipe_categories",
         back_populates="categories",
         lazy="noload",
     )
+
     inventory_items: Mapped[list["InventoryItem"]] = relationship(
         "InventoryItem",
-        secondary=inventory_item_categories,
+        secondary="inventory_item_categories",
         back_populates="categories",
         lazy="noload",
     )
+
+    category_units: Mapped[list["CategoryUnit"]] = relationship(
+        "CategoryUnit",
+        back_populates="category",
+        cascade="all, delete-orphan",
+        lazy="noload",
+    )
+

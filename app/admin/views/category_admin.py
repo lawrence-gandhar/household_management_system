@@ -19,7 +19,7 @@ class CategoryAdmin(LabeledModelAdmin):
 
     # ── Table columns ─────────────────────────────────────────────────────────
     list_display = [
-        TableColumn(name="id",          label="ID"),
+        # TableColumn(name="id",          label="ID"),
         TableColumn(name="name",        label="Name"),
         TableColumn(name="description", label="Description"),
         TableColumn(name="is_active",   label="Active"),
@@ -28,7 +28,7 @@ class CategoryAdmin(LabeledModelAdmin):
 
     # ── Form field labels ─────────────────────────────────────────────────────
     verbose_fields = {
-        "id":          "ID",
+        # "id":          "ID",
         "name":        "Category Name",
         "description": "Description",
         "is_active":   "Active",

@@ -1,8 +1,12 @@
+from fastapi import Request
 from fastapi_amis_admin.amis.components import PageSchema, TableColumn
+from sqlalchemy import select as sa_select
+from sqlalchemy.sql import Select
 
 from app.admin.mixins import LabeledModelAdmin
 from app.admin.site import admin_site
 from app.models.recipe import Recipe, RecipeIngredient
+from app.models.user import User
 
 
 @admin_site.register_admin
@@ -12,8 +16,8 @@ class RecipeAdmin(LabeledModelAdmin):
 
     # ── Table columns ─────────────────────────────────────────────────────────
     list_display = [
-        TableColumn(name="id",           label="ID"),
-        TableColumn(name="user_id",      label="User ID"),
+        # TableColumn(name="id",           label="ID"),
+        TableColumn(name="user_email",   label="Email"),
         TableColumn(name="title",        label="Title"),
         TableColumn(name="cuisine_type", label="Cuisine"),
         TableColumn(name="difficulty",   label="Difficulty"),
@@ -24,7 +28,7 @@ class RecipeAdmin(LabeledModelAdmin):
 
     # ── Form field labels ─────────────────────────────────────────────────────
     verbose_fields = {
-        "id":                 "ID",
+        # "id":                 "ID",
         "user_id":            "User",
         "title":              "Title",
         "description":        "Description",
@@ -45,6 +49,16 @@ class RecipeAdmin(LabeledModelAdmin):
     search_fields = [Recipe.title, Recipe.cuisine_type]
     list_filter   = [Recipe.source, Recipe.difficulty, Recipe.is_premium, Recipe.cuisine_type]
     ordering      = [Recipe.created_at]
+
+    async def get_select(self, request: Request) -> Select:
+        sel = await super().get_select(request)
+        user_email = (
+            sa_select(User.email)
+            .where(User.id == Recipe.user_id)
+            .scalar_subquery()
+            .label("user_email")
+        )
+        return sel.add_columns(user_email)
 
 
 @admin_site.register_admin

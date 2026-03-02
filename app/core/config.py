@@ -52,14 +52,36 @@ class Settings(BaseSettings):
         "http://localhost:8080",
     ]
 
-    # AI Integration (optional)
-    AI_SERVICE_URL: str = ""
-    AI_SERVICE_API_KEY: str = ""
+    # ── OpenAI ────────────────────────────────────────────────────
+    OPENAI_API_KEY: str
+    OPENAI_MODEL_RECIPE: str  = "gpt-4.1"
+    OPENAI_MODEL_CHAT: str    = "gpt-4o"
+    OPENAI_TIMEOUT_SECONDS: int = 30
+    OPENAI_MAX_RETRIES: int   = 3
+
+    # ── Tier-based daily AI request limits ────────────────────────
+    AI_LIMIT_FREE_DAILY: int    = 5
+    AI_LIMIT_PREMIUM_DAILY: int = 100
+
+    # ── Circuit breaker ───────────────────────────────────────────
+    CB_FAILURE_THRESHOLD: int  = 5
+    CB_RECOVERY_TIMEOUT_S: int = 60
+
+    # ── Redis ─────────────────────────────────────────────────────
+    REDIS_URL: str            = "redis://localhost:6379/0"
+    REDIS_AI_CACHE_TTL_S: int = 3600   # 1-hour recipe cache
+    REDIS_RATE_WINDOW_S: int  = 86400  # 24-hour rolling window
+
+    # ── Prompt hardening ──────────────────────────────────────────
+    AI_MAX_INGREDIENTS: int   = 50     # hard cap before LLM
+    AI_MAX_PROMPT_CHARS: int  = 8000   # reject oversized prompts
 
 
 @lru_cache
 def get_settings() -> Settings:
     return Settings()  # type: ignore[call-arg]
+
+
 
 
 settings = get_settings()

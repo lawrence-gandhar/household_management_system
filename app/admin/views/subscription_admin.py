@@ -1,8 +1,12 @@
+from fastapi import Request
 from fastapi_amis_admin.amis.components import PageSchema, TableColumn
+from sqlalchemy import select as sa_select
+from sqlalchemy.sql import Select
 
 from app.admin.mixins import LabeledModelAdmin
 from app.admin.site import admin_site
 from app.models.subscription import Subscription
+from app.models.user import User
 
 
 @admin_site.register_admin
@@ -12,8 +16,8 @@ class SubscriptionAdmin(LabeledModelAdmin):
 
     # ── Table columns ─────────────────────────────────────────────────────────
     list_display = [
-        TableColumn(name="id",                label="ID"),
-        TableColumn(name="user_id",           label="User ID"),
+        # TableColumn(name="id",                label="ID"),
+        TableColumn(name="user_email",        label="Email"),
         TableColumn(name="tier",              label="Tier"),
         TableColumn(name="starts_at",         label="Started"),
         TableColumn(name="expires_at",        label="Expires"),
@@ -24,7 +28,7 @@ class SubscriptionAdmin(LabeledModelAdmin):
 
     # ── Form field labels ─────────────────────────────────────────────────────
     verbose_fields = {
-        "id":                "ID",
+        # "id":                "ID",
         "user_id":           "User",
         "tier":              "Tier",
         "starts_at":         "Started",
@@ -38,3 +42,13 @@ class SubscriptionAdmin(LabeledModelAdmin):
     search_fields = [Subscription.payment_reference]
     list_filter   = [Subscription.tier, Subscription.is_active]
     ordering      = [Subscription.created_at]
+
+    async def get_select(self, request: Request) -> Select:
+        sel = await super().get_select(request)
+        user_email = (
+            sa_select(User.email)
+            .where(User.id == Subscription.user_id)
+            .scalar_subquery()
+            .label("user_email")
+        )
+        return sel.add_columns(user_email)

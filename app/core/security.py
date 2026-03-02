@@ -1,24 +1,41 @@
+import base64
+import hashlib
 import secrets
 import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Any, NamedTuple
 
+import bcrypt
 from jose import JWTError, jwt
-from passlib.context import CryptContext
 
 from app.core.config import settings
 
-_pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
 
 # ── Password helpers ─────────────────────────────────────────────────────────
+#
+# passlib 1.7.4 is incompatible with bcrypt ≥ 4.0 (its detect_wrap_bug helper
+# passes a >72-byte test string which the newer bcrypt library rejects with
+# ValueError).  We call bcrypt directly to avoid the issue.
+#
+# SHA-256 pre-hashing ensures bcrypt never sees a raw password, sidestepping
+# the 72-byte truncation limit entirely.  Both helpers MUST apply _prehash so
+# that hash and verify are symmetric.
+
+def _prehash(plain: str) -> bytes:
+    """Return the base64-encoded SHA-256 digest of *plain* as bytes (44 chars)."""
+    digest = hashlib.sha256(plain.encode("utf-8")).digest()
+    return base64.b64encode(digest)
+
 
 def hash_password(plain: str) -> str:
-    return _pwd_context.hash(plain)
+    return bcrypt.hashpw(_prehash(plain), bcrypt.gensalt()).decode("utf-8")
 
 
 def verify_password(plain: str, hashed: str) -> bool:
-    return _pwd_context.verify(plain, hashed)
+    try:
+        return bcrypt.checkpw(_prehash(plain), hashed.encode("utf-8"))
+    except Exception:
+        return False
 
 
 # ── Secure random token ───────────────────────────────────────────────────────
