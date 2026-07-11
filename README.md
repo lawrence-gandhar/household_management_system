@@ -1,2 +1,1 @@
-# pantry_mate
-Pantry Mate Application
+House Hold Management System
